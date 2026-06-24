@@ -2,6 +2,7 @@ package com.reptithcm.edu.service.auth;
 
 import com.reptithcm.edu.dto.UserLoginDto;
 import com.reptithcm.edu.dto.request.LoginRequest;
+import com.reptithcm.edu.dto.request.LogoutRequest;
 import com.reptithcm.edu.dto.request.RefreshTokenRequest;
 import com.reptithcm.edu.dto.request.RegisterRequest;
 import com.reptithcm.edu.dto.response.LoginResponse;
@@ -11,21 +12,17 @@ import com.reptithcm.edu.entity.user.RefreshToken;
 import com.reptithcm.edu.entity.user.Role;
 import com.reptithcm.edu.entity.user.User;
 import com.reptithcm.edu.entity.user.UserRole;
-import com.reptithcm.edu.exception.AppException;
 import com.reptithcm.edu.mapper.UserMapper;
 import com.reptithcm.edu.repository.user.RefreshTokenRepository;
 import com.reptithcm.edu.repository.user.RoleRepository;
 import com.reptithcm.edu.repository.user.UserRepository;
 import com.reptithcm.edu.security.TokenProvider;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -146,5 +143,22 @@ public class AuthService {
 
         // 5. Return response DTO
         return new RefreshTokenResponse(accessToken, requestRefreshToken, "Bearer");
+    }
+
+    public void handleLogout(LogoutRequest logoutRequest) {
+        String refreshToken = logoutRequest.getRefreshToken();
+        refreshTokenRepository.findRefreshTokenByRefreshToken(refreshToken)
+                .ifPresent(refreshTokenRepository::delete);
+    }
+
+    public boolean isUserLoggedIn(Long userId) {
+        return refreshTokenRepository.findByUserId(userId).isPresent();
+    }
+
+    public void handleRevokeToken(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new RuntimeException("The user does not exist!");
+        }
+        refreshTokenRepository.deleteByUserId(userId);
     }
 }
